@@ -69,7 +69,7 @@ contract Quiz {
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.3/contracts/token/ERC20/ERC20.sol";
 
-contract QuizWithErc20 is ERC20 {
+contract QuizWithERC20 is ERC20 {
     address owner;
     uint256 blkNumOnConstructed;
     mapping(address => bytes32) submission;
