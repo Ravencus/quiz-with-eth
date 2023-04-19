@@ -88,6 +88,26 @@ contract QuizWithErc20 is ERC20 {
     // erc20 override
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
         owner = msg.sender;
+
+contract QuizWithErc20 is ERC20 {
+    address owner;
+    uint256 blkNumOnConstructed;
+    mapping(address => bytes32) submission;
+    mapping(address => uint256) bet;
+    mapping(address => bool) verified;
+    address payable[] winner;
+    bytes32 correctAnswer;
+
+    enum Status {
+        Submitting,
+        Judging,
+        Announcing
+    }
+    Status public status = Status.Submitting;
+
+    // erc20 override
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
+        owner = msg.sender;
         blkNumOnConstructed = block.number;
     }
 
@@ -122,11 +142,13 @@ contract QuizWithErc20 is ERC20 {
 
     // original contract
 
-    function submitAnswer(bytes32 answer) external payable {
+    function submitAnswer(bytes32 answer, uint256 playerBet) external {
         require(status == Status.Submitting);
-        require(msg.value > 0);
+        require(playerBet > 0);
+        transferFrom(msg.sender, address(this), playerBet);
+
         submission[msg.sender] = answer;
-        bet[msg.sender] = msg.value;
+        bet[msg.sender] = playerBet;
         verified[msg.sender] = false;
     }
 
@@ -155,7 +177,7 @@ contract QuizWithErc20 is ERC20 {
         require(status == Status.Judging);
         status = Status.Announcing;
 
-        uint256 allMoney = (address(this).balance / 10) * 9;
+        uint256 allMoney = balanceOf(address(this));
         uint256 winnersMoney = 0;
         for (uint256 i = 0; i < winner.length; i++) {
             winnersMoney += bet[winner[i]];
@@ -163,7 +185,7 @@ contract QuizWithErc20 is ERC20 {
 
         for (uint256 i = 0; i < winner.length; i++) {
             uint256 money = (allMoney * bet[winner[i]]) / winnersMoney;
-            if (money > 0) winner[i].call{value: money}("");
+            if (money > 0) transfer(winner[i], money);
         }
     }
 }
