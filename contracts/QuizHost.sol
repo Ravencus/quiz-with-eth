@@ -123,7 +123,6 @@ contract QuizWithERC20 is ERC20 {
     }
 
     // original contract
-
     function register() public {
         require(status == Status.Registering);
         require(balanceOf(msg.sender) == 0);
