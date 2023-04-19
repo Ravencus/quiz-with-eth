@@ -69,13 +69,17 @@ contract Player {
 contract TestSendFundToUnpayableAddr {
     constructor() payable {
         Quiz quiz;
-        PlayerCannotReceiveFunds player = new PlayerCannotReceiveFunds(quiz);
+        PlayerCannotReceiveFunds player1 = new PlayerCannotReceiveFunds(quiz);
+        Player player2 = new Player(quiz);
         // submitting
+        bytes32 answer = 0;
         bytes32 salt = 0;
-        player.submitAnswer(0, salt);
+        player1.submitAnswer(answer, salt);
+        player2.submitAnswer(answer, salt);
         // judging
-        quiz._judgeAnswer(0);
-        player.verify(salt);
+        quiz._judgeAnswer(answer);
+        player1.verify(salt);
+        player2.verify(salt);
         // announcing
         quiz._announcePrize();
     }
@@ -98,12 +102,15 @@ contract TestNoWinnerNobodyRight {
         Player player1 = new Player(quiz);
         Player player2 = new Player(quiz);
         // submitting
+        bytes32 answer = 0;
         bytes32 salt1 = 0;
         bytes32 salt2 = 0;
-        player1.submitAnswer(0, salt1);
-        player2.submitAnswer(0, salt2);
+        player1.submitAnswer(answer, salt1);
+        player2.submitAnswer(answer, salt2);
         // judging
-        quiz._judgeAnswer(bytes32(uint256(1)));
+        bytes32 correctAns = bytes32(uint256(1));
+        require(answer != correctAns);
+        quiz._judgeAnswer(correctAns);
         player1.verify(salt1);
         player2.verify(salt2);
         // announcing
@@ -117,17 +124,23 @@ contract TestReplay {
         Player player1 = new Player(quiz);
         Player player2 = new Player(quiz);
         // submitting
+        bytes32 answer = 0;
         bytes32 salt1 = 0;
-        bytes32 encodedAns = player1.getEncodedAnswer(0, salt1);
-        player2.submitEncodedAnswer(encodedAns /* player 2 saw player 1's transaction and stole its hashed answer */);
-        // judging 
-        quiz._judgeAnswer(0);
+        bytes32 encodedAns = player1.getEncodedAnswer(answer, salt1);
+        player2.submitEncodedAnswer(
+            encodedAns /* player 2 saw player 1's transaction and stole its hashed answer */
+        );
+        // judging
+        quiz._judgeAnswer(answer);
         player1.verify(salt1);
-        try player2.verify(salt1 /* player 2 saw player 1's transaction and stole its salt */) {
+        try
+            player2.verify(
+                salt1 /* player 2 saw player 1's transaction and stole its salt */
+            )
+        {
             require(false, "Replay attack should be reverted!");
         } catch (bytes memory) {}
-        // announcing 
+        // announcing
         quiz._announcePrize();
     }
 }
-
