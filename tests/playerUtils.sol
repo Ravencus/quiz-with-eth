@@ -38,6 +38,7 @@ contract Player {
 
     function getEncodedAnswer(bytes32 rawAnswer, bytes32 salt)
         public
+        view
         returns (bytes32)
     {
         return keccak256(abi.encodePacked(rawAnswer, salt, address(this)));
@@ -68,9 +69,11 @@ contract Player {
 
 contract TestSendFundToUnpayableAddr {
     constructor() payable {
-        Quiz quiz;
-        PlayerCannotReceiveFunds player1 = new PlayerCannotReceiveFunds(quiz);
-        Player player2 = new Player(quiz);
+        Quiz quiz = new Quiz();
+        PlayerCannotReceiveFunds player1 = new PlayerCannotReceiveFunds{
+            value: 1 gwei
+        }(quiz);
+        Player player2 = new Player{value: 1 gwei}(quiz);
         // submitting
         bytes32 answer = 0;
         bytes32 salt = 0;
@@ -87,7 +90,7 @@ contract TestSendFundToUnpayableAddr {
 
 contract TestNoWinnerNoSubmission {
     constructor() payable {
-        Quiz quiz;
+        Quiz quiz = new Quiz();
         // submitting
         // judging
         quiz._judgeAnswer(0);
@@ -98,9 +101,9 @@ contract TestNoWinnerNoSubmission {
 
 contract TestNoWinnerNobodyRight {
     constructor() payable {
-        Quiz quiz;
-        Player player1 = new Player(quiz);
-        Player player2 = new Player(quiz);
+        Quiz quiz = new Quiz();
+        Player player1 = new Player{value: 1 gwei}(quiz);
+        Player player2 = new Player{value: 1 gwei}(quiz);
         // submitting
         bytes32 answer = 0;
         bytes32 salt1 = 0;
@@ -111,8 +114,12 @@ contract TestNoWinnerNobodyRight {
         bytes32 correctAns = bytes32(uint256(1));
         require(answer != correctAns);
         quiz._judgeAnswer(correctAns);
-        player1.verify(salt1);
-        player2.verify(salt2);
+        try player1.verify(salt1) {
+            require(false, "Incorrect answer should be reverted!");
+        } catch (bytes memory) {}
+        try player2.verify(salt2) {
+            require(false, "Incorrect answer should be reverted!");
+        } catch (bytes memory) {}
         // announcing
         quiz._announcePrize();
     }
@@ -120,13 +127,14 @@ contract TestNoWinnerNobodyRight {
 
 contract TestReplay {
     constructor() payable {
-        Quiz quiz;
-        Player player1 = new Player(quiz);
-        Player player2 = new Player(quiz);
+        Quiz quiz = new Quiz();
+        Player player1 = new Player{value: 1 gwei}(quiz);
+        Player player2 = new Player{value: 1 gwei}(quiz);
         // submitting
         bytes32 answer = 0;
         bytes32 salt1 = 0;
         bytes32 encodedAns = player1.getEncodedAnswer(answer, salt1);
+        player1.submitEncodedAnswer(encodedAns);
         player2.submitEncodedAnswer(
             encodedAns /* player 2 saw player 1's transaction and stole its hashed answer */
         );
