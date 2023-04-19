@@ -71,7 +71,8 @@ import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.3/contr
 
 contract QuizWithERC20 is ERC20 {
     address owner;
-    uint256 blkNumOnConstructed;
+    uint256 registerToken = 10**decimals();
+    // uint256 blkNumOnConstructed;
     mapping(address => bytes32) submission;
     mapping(address => uint256) bet;
     mapping(address => bool) verified;
@@ -79,36 +80,17 @@ contract QuizWithERC20 is ERC20 {
     bytes32 correctAnswer;
 
     enum Status {
+        Registering,
         Submitting,
         Judging,
         Announcing
     }
-    Status public status = Status.Submitting;
+    Status public status = Status.Registering;
 
     // erc20 override
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {
         owner = msg.sender;
-
-contract QuizWithErc20 is ERC20 {
-    address owner;
-    uint256 blkNumOnConstructed;
-    mapping(address => bytes32) submission;
-    mapping(address => uint256) bet;
-    mapping(address => bool) verified;
-    address payable[] winner;
-    bytes32 correctAnswer;
-
-    enum Status {
-        Submitting,
-        Judging,
-        Announcing
-    }
-    Status public status = Status.Submitting;
-
-    // erc20 override
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {
-        owner = msg.sender;
-        blkNumOnConstructed = block.number;
+        // blkNumOnConstructed = block.number;
     }
 
     function transfer(address to, uint256 amount)
@@ -142,6 +124,12 @@ contract QuizWithErc20 is ERC20 {
 
     // original contract
 
+    function register() public {
+        require(status == Status.Registering);
+        require(balanceOf(msg.sender) == 0);
+        _mint(msg.sender, registerToken);
+    }
+
     function submitAnswer(bytes32 answer, uint256 playerBet) external {
         require(status == Status.Submitting);
         require(playerBet > 0);
@@ -163,6 +151,12 @@ contract QuizWithErc20 is ERC20 {
 
         winner.push(payable(msg.sender));
         verified[msg.sender] = true;
+    }
+
+    function _startQuiz() external {
+        require(status == Status.Registering);
+        require(msg.sender == owner);
+        status = Status.Submitting;
     }
 
     function _judgeAnswer(bytes32 _correctAnswer) external {
