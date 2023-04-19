@@ -12,11 +12,12 @@ contract PlayerCannotReceiveFunds {
         quiz = _quiz;
     }
 
-    function submitAnswer(bytes32 rawAnswer, bytes32 salt) external {
+    function submitAnswer(bytes32 rawAnswer, bytes32 salt) external payable {
+        require(msg.value > 0);
         bytes32 encodedAnswer = keccak256(
             abi.encodePacked(rawAnswer, salt, address(this))
         );
-        quiz.submitAnswer{value: 1 gwei}(encodedAnswer);
+        quiz.submitAnswer{value: msg.value}(encodedAnswer);
     }
 
     function verify(bytes32 mySalt) external {
@@ -32,7 +33,7 @@ contract Player {
         quiz = _quiz;
     }
 
-    function submitAnswer(bytes32 rawAnswer, bytes32 salt) external {
+    function submitAnswer(bytes32 rawAnswer, bytes32 salt) external payable {
         submitEncodedAnswer(getEncodedAnswer(rawAnswer, salt));
     }
 
@@ -44,8 +45,9 @@ contract Player {
         return keccak256(abi.encodePacked(rawAnswer, salt, address(this)));
     }
 
-    function submitEncodedAnswer(bytes32 encodedAnswer) public {
-        quiz.submitAnswer{value: 1 gwei}(encodedAnswer);
+    function submitEncodedAnswer(bytes32 encodedAnswer) public payable {
+        require(msg.value > 0);
+        quiz.submitAnswer{value: msg.value}(encodedAnswer);
     }
 
     function verify(bytes32 mySalt) external {
@@ -77,8 +79,8 @@ contract TestSendFundToUnpayableAddr {
         // submitting
         bytes32 answer = 0;
         bytes32 salt = 0;
-        player1.submitAnswer(answer, salt);
-        player2.submitAnswer(answer, salt);
+        player1.submitAnswer{value: .5 gwei}(answer, salt);
+        player2.submitAnswer{value: .5 gwei}(answer, salt);
         // judging
         quiz._judgeAnswer(answer);
         player1.verify(salt);
@@ -108,8 +110,8 @@ contract TestNoWinnerNobodyRight {
         bytes32 answer = 0;
         bytes32 salt1 = 0;
         bytes32 salt2 = 0;
-        player1.submitAnswer(answer, salt1);
-        player2.submitAnswer(answer, salt2);
+        player1.submitAnswer{value: .5 gwei}(answer, salt1);
+        player2.submitAnswer{value: .5 gwei}(answer, salt2);
         // judging
         bytes32 correctAns = bytes32(uint256(1));
         require(answer != correctAns);
@@ -134,8 +136,8 @@ contract TestReplay {
         bytes32 answer = 0;
         bytes32 salt1 = 0;
         bytes32 encodedAns = player1.getEncodedAnswer(answer, salt1);
-        player1.submitEncodedAnswer(encodedAns);
-        player2.submitEncodedAnswer(
+        player1.submitEncodedAnswer{value: .5 gwei}(encodedAns);
+        player2.submitEncodedAnswer{value: .5 gwei}(
             encodedAns /* player 2 saw player 1's transaction and stole its hashed answer */
         );
         // judging
