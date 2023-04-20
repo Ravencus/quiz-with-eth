@@ -69,9 +69,11 @@ contract Quiz {
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.3/contracts/token/ERC20/ERC20.sol";
 
+import "hardhat/console.sol";
+
 contract QuizWithERC20 is ERC20 {
     address owner;
-    uint256 registerToken = 10**decimals();
+    uint256 public registerToken = 10**decimals();
     // uint256 blkNumOnConstructed;
     mapping(address => bytes32) submission;
     mapping(address => uint256) bet;
@@ -99,7 +101,8 @@ contract QuizWithERC20 is ERC20 {
         override
         returns (bool)
     {
-        require(msg.sender == owner);
+        console.log("this ", address(this), "sender ", msg.sender);
+        require(msg.sender == owner || to == owner);
         return super.transfer(to, amount);
     }
 
@@ -109,8 +112,8 @@ contract QuizWithERC20 is ERC20 {
         override
         returns (bool)
     {
-        require(spender == owner);
-        return super.transfer(spender, amount);
+        require(false);
+        return super.approve(spender, amount);
     }
 
     function transferFrom(
@@ -118,7 +121,7 @@ contract QuizWithERC20 is ERC20 {
         address to,
         uint256 amount
     ) public virtual override returns (bool) {
-        require(to == owner);
+        require(false);
         return super.transferFrom(from, to, amount);
     }
 
@@ -132,7 +135,7 @@ contract QuizWithERC20 is ERC20 {
     function submitAnswer(bytes32 answer, uint256 playerBet) external {
         require(status == Status.Submitting);
         require(playerBet > 0);
-        transferFrom(msg.sender, address(this), playerBet);
+        transfer(owner, playerBet);
 
         submission[msg.sender] = answer;
         bet[msg.sender] = playerBet;
@@ -170,15 +173,20 @@ contract QuizWithERC20 is ERC20 {
         require(status == Status.Judging);
         status = Status.Announcing;
 
-        uint256 allMoney = balanceOf(address(this));
+        uint256 allMoney = balanceOf(owner);
+        console.log(allMoney);
         uint256 winnersMoney = 0;
         for (uint256 i = 0; i < winner.length; i++) {
             winnersMoney += bet[winner[i]];
         }
+        console.log(winnersMoney);
 
         for (uint256 i = 0; i < winner.length; i++) {
             uint256 money = (allMoney * bet[winner[i]]) / winnersMoney;
-            if (money > 0) transfer(winner[i], money);
+            console.log(i, money, winner[i]);
+            if (money > 0) {
+                transfer(winner[i], money);
+            }
         }
     }
 }
