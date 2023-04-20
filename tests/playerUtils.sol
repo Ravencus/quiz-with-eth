@@ -57,6 +57,51 @@ contract Player {
     receive() external payable {}
 }
 
+contract PlayerERC20 {
+    QuizWithERC20 quiz;
+
+    constructor(QuizWithERC20 _quiz) {
+        quiz = _quiz;
+    }
+
+    function register() external {
+        quiz.register();
+    }
+
+    function balanceOf() external view returns (uint256) {
+        return quiz.balanceOf(address(this));
+    }
+
+    function submitAnswer(bytes32 rawAnswer, bytes32 salt) external {
+        submitEncodedAnswer(getEncodedAnswer(rawAnswer, salt));
+    }
+
+    function getEncodedAnswer(bytes32 rawAnswer, bytes32 salt)
+        public
+        view
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(rawAnswer, salt, address(this)));
+    }
+
+    function submitEncodedAnswer(bytes32 encodedAnswer) public {
+        uint256 amount = quiz.registerToken();
+
+        quiz.submitAnswer(encodedAnswer, amount);
+    }
+
+    function verify(bytes32 mySalt) external {
+        quiz.verifyAnswer(mySalt);
+    }
+
+    /**
+     * This shoud revert!
+     */
+    function transfer(address dst, uint256 amount) public {
+        quiz.transfer(dst, amount);
+    }
+}
+
 //
 //
 //
@@ -152,5 +197,68 @@ contract TestReplay {
         } catch (bytes memory) {}
         // announcing
         quiz._announcePrize();
+    }
+}
+
+contract TestQuizWithERC20 {
+    QuizWithERC20 public quiz;
+    PlayerERC20 public player1;
+    PlayerERC20 public player2;
+    bytes32 answer1 = 0;
+    bytes32 answer2 = bytes32(uint256(1));
+    bytes32 salt = 0;
+
+    constructor() payable {
+        quiz = new QuizWithERC20("Quiz", "QZ");
+        player1 = new PlayerERC20(quiz);
+        player2 = new PlayerERC20(quiz);
+        // registering
+        player1.register();
+        player2.register();
+        // submitting
+        quiz._startQuiz();
+        console.log("ready to submit?");
+        require(answer1 != answer2);
+        console.log("ready to submit!");
+        player1.submitAnswer(answer1, salt);
+        player2.submitAnswer(answer2, salt);
+        // judging
+        quiz._judgeAnswer(answer1);
+        player1.verify(salt);
+        try player2.verify(salt) {
+            require(false, "Incorrect answer should be reverted!");
+        } catch (bytes memory) {}
+        //  announcing
+        quiz._announcePrize();
+        require(quiz.balanceOf(address(player1)) == 2 * quiz.registerToken());
+        require(quiz.balanceOf(address(player2)) == 0);
+    }
+}
+
+contract TestDenyPlayerTransferBetween {
+    QuizWithERC20 public quiz;
+    PlayerERC20 public player1;
+    PlayerERC20 public player2; 
+
+    constructor() payable {
+        quiz = new QuizWithERC20("Quiz", "QZ");
+        player1 = new PlayerERC20(quiz);
+        player2 = new PlayerERC20(quiz);
+        // registering
+        player1.register();
+        player2.register();
+        // transfer
+        try player1.transfer(address(player2), 1) {
+            require(
+                false,
+                "Players should not be able to transfer between players!"
+            );
+        } catch (bytes memory) {}
+        try player2.transfer(address(player1), 1) {
+            require(
+                false,
+                "Players should not be able to transfer between players!"
+            );
+        } catch (bytes memory) {}
     }
 }
