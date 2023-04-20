@@ -69,7 +69,7 @@ contract Quiz {
 
 import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.8.3/contracts/token/ERC20/ERC20.sol";
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 
 contract QuizWithERC20 is ERC20 {
     address owner;
@@ -100,8 +100,7 @@ contract QuizWithERC20 is ERC20 {
         virtual
         override
         returns (bool)
-    {
-        console.log("this ", address(this), "sender ", msg.sender);
+    { 
         require(msg.sender == owner || to == owner);
         return super.transfer(to, amount);
     }
@@ -122,7 +121,6 @@ contract QuizWithERC20 is ERC20 {
         uint256 amount
     ) public virtual override returns (bool) {
         require(false);
-        return super.transferFrom(from, to, amount);
     }
 
     // original contract
@@ -173,17 +171,14 @@ contract QuizWithERC20 is ERC20 {
         require(status == Status.Judging);
         status = Status.Announcing;
 
-        uint256 allMoney = balanceOf(owner);
-        console.log(allMoney);
+        uint256 allMoney = balanceOf(owner); 
         uint256 winnersMoney = 0;
         for (uint256 i = 0; i < winner.length; i++) {
             winnersMoney += bet[winner[i]];
-        }
-        console.log(winnersMoney);
+        } 
 
         for (uint256 i = 0; i < winner.length; i++) {
-            uint256 money = (allMoney * bet[winner[i]]) / winnersMoney;
-            console.log(i, money, winner[i]);
+            uint256 money = (allMoney * bet[winner[i]]) / winnersMoney; 
             if (money > 0) {
                 transfer(winner[i], money);
             }
