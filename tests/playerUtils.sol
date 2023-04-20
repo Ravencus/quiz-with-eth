@@ -216,10 +216,8 @@ contract TestQuizWithERC20 {
         player1.register();
         player2.register();
         // submitting
-        quiz._startQuiz();
-        console.log("ready to submit?");
-        require(answer1 != answer2);
-        console.log("ready to submit!");
+        quiz._startQuiz(); 
+        require(answer1 != answer2); 
         player1.submitAnswer(answer1, salt);
         player2.submitAnswer(answer2, salt);
         // judging
